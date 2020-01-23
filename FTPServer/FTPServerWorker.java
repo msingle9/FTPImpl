@@ -238,7 +238,7 @@ public class FTPServerWorker implements Runnable {
 
 	private void putCommand(String argument) throws IOException {
 
-		File fileToCreate = new File("Server" + argument);					//REMOVE SERVER for real use
+		File fileToCreate = new File(argument);
 
 		String fileLengthFromClient = receiveClientResponse();
 
