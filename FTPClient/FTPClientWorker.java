@@ -187,13 +187,11 @@ public class FTPClientWorker implements Runnable{
 		String filesLengthString = receiveServerResponse();
 		Integer filesLength = Integer.parseInt(filesLengthString);
 
-		/* this replaces below
+
 		String filePath = (currentDirectory + sysFileSeparator + arguments);
 		
 		File newFile = new File(filePath);
-		*/ 
-		
-		File newFile = new File("Client" + arguments);
+
 		try {
         
    			fileOutputStream = new FileOutputStream(newFile);
