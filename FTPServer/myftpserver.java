@@ -16,41 +16,39 @@ public class myftpserver {
 
 	private static ServerSocket serverSocket = null;
 	public static ServerSocket serverDataSocket = null;
-	
-	
+		
 	
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
 		
-		int portNumber = 8015;
+		int portNumber = 0;
 		
 		
-		/**
+		
 		if (args.length == 1) {
     	    
-    		try {
-    	        
-    			portNumber = Integer.parseInt(args[0]);
-    	    } 
-    		catch (NumberFormatException e) {
-    	        
-    			System.err.println("Command line argument" + args[0] + " must be a port integer."); //FIX
-    	        System.exit(-1);
-    	    }
-    	}
+			try {
+
+				portNumber = Integer.parseInt(args[0]);
+			} 
+			catch (NumberFormatException e) {
+
+				System.err.println("Command line argument" + args[0] + " must be a port integer."); //FIX
+				System.exit(-1);
+			}
+    		}
 		else {
 			System.err.println("Command line argument" + args[0] + " must be a port integer.");  //FIX
 	        System.exit(-1);
 		}
-		**/
+		
 		
 		
 		try {
 			
 			serverSocket = new ServerSocket(portNumber);
-			serverDataSocket = new ServerSocket(portNumber + 1);
 
 			ExecutorService threadPoolServer = Executors.newFixedThreadPool(20);
 
