@@ -19,12 +19,6 @@ public class myftp {
 	private static int portNumber = 0;
 	private static Future clientProgramFuture = null;
 
-
-
-
-
-
-
 	/**
 	 * @param args args[0] as host name and args[1] as port number
 	 */
@@ -32,31 +26,29 @@ public class myftp {
         
 		ExecutorService threadPoolClient = Executors.newFixedThreadPool(1);
 		
-		
-		/**
+
 		if (args.length != 2) {
-            System.err.println("Pass the  machine name where the server resides and the port number");
-            return;            
-        }
+            	System.err.println("Pass the  machine name where the server resides and the port number");
+            	return;            
+        	}
         		
 		String hostName = args[0];
 		
-		try {
-	        
+		try {	        
 			portNumber = Integer.parseInt(args[1]);
-	    } 		
+	    	} 		
 		catch (NumberFormatException e) {
 	        
 			System.err.println("Command line argument" + args[0] + " must be a port integer."); //FIX
 	        System.exit(-1);
 	    }
-		**/
+		
 		
 		        
         try {
 
-        	//socket = new Socket(hostName, portNumber)
-        	socket = new Socket("localhost", 8015);
+        	socket = new Socket(hostName, portNumber);
+        	//socket = new Socket("localhost", 8015);
 
         	Runnable clientProgram = new FTPClientWorker(socket);
        		
