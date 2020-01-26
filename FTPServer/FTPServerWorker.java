@@ -1,6 +1,3 @@
-/**
- * 
- */
 package FTPServer;
 
 import java.io.BufferedInputStream;
@@ -18,30 +15,39 @@ import java.net.Socket;
 import java.util.Scanner;
 
 /**
- * @author Christine McGee
+ * When a client connection arrives starts accepting commands and 
+ * executes them. Upon receiving the quit command, the server closes 
+ * the connection and does housekeeping.
+ * @author Christine McGee, Andrew Heywood, Matthew Singletary
  *
  */
 public class FTPServerWorker implements Runnable {
 	
+	// Variable Declaration
 	private Socket socket = null;
-	private boolean quitCommand = false;		
-
-	private String root;
-	private String currentDirectory;
-	private String sysFileSeparator;
-
-
+	
 	private DataInputStream inputFromClient = null;
 	private BufferedReader inputFromClientBuffered = null;
-
 	private PrintStream outputToClient = null;
 
 	private FileOutputStream fileOutputStream = null;
 	private BufferedOutputStream bufferedFileOutputStream = null;
+	
 	private FileInputStream fileInputStream = null;
 	private BufferedInputStream bufferedFileInputStream = null;
 
+	private boolean quitCommand = false;	
+	
+	private String root;
+	private String currentDirectory;
+	private String sysFileSeparator;
 
+	/**
+	 * Initializes newly created FTPServerWorker object before use.
+	 * Determines the directory the server resides in, the operating
+	 * system's file separator, and the root directory.
+	 * @param socket Socket created in myftpserver
+	 */
 	public FTPServerWorker(Socket socket) {
 
 		this.socket = socket;
@@ -51,12 +57,20 @@ public class FTPServerWorker implements Runnable {
 	}
 
 
-	/* (non-Javadoc)
+	/* Overrides the run() method from Runnable class and assigns the input
+	 * and output streams to variables. Creates loop to accept Client commands
+	 * until quit is received.
+	 * (non-Javadoc)
 	 * @see java.lang.Runnable#run()
 	 */
 	@Override
-	public void run() {
+	public void run() {		
+		
 		System.out.println("Connected to client");
+		
+		// Try assigning input and output streams and starting while loop
+		// catch possible errors and inform user. Finally close all streams
+		// and socket.
 		try {
 
 			inputFromClient = new DataInputStream(socket.getInputStream());
@@ -66,7 +80,7 @@ public class FTPServerWorker implements Runnable {
 
 		}
 		catch(IOException e) {
-			System.err.println("IOException:  " + e + "\n" + e.getMessage());
+			System.err.println("IOException for command while loop:  " + e + "\n" + e.getMessage());
 		}
 
 
@@ -79,33 +93,35 @@ public class FTPServerWorker implements Runnable {
 			}	  
 		} 
 		catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.err.println("IOException for command while loop:  " + e + "\n" + e.getMessage());
 		}
-		/**
-		 * Close the input and output streams and the socket.
-		 */
-
-		try {
-			if (inputFromClient != null) {
-				inputFromClient.close();
+		finally {
+			
+			// Close the input and output streams and the socket.
+			try {
+				if (inputFromClient != null) {
+					inputFromClient.close();
+				}
+				if (outputToClient != null) {
+					outputToClient.close();
+				}
+				if (inputFromClientBuffered != null) {
+					inputFromClientBuffered.close();
+				}
+				if (socket != null) {
+					socket.close();
+				}
+				System.out.println("Disconnected from client");
+			} catch (IOException e) {
+				System.err.println("IOException while trying to close streams:  " + e + "\n" + e.getMessage());
 			}
-			if (outputToClient != null) {
-				outputToClient.close();
-			}
-			if (inputFromClientBuffered != null) {
-				inputFromClientBuffered.close();
-			}
-			if (socket != null) {
-				socket.close();
-			}
-			System.out.println("Disconnected from client");
-		} catch (IOException e) {
-			System.err.println("IOException:  " + e);
 		}
-
 	}
-
+	
+	/**
+	 * Processes command from Client to determine what method to call.
+	 * @throws IOException
+	 */
 	private void processCommand() throws IOException {
 
 		String commands = receiveClientResponse();
@@ -130,13 +146,16 @@ public class FTPServerWorker implements Runnable {
 		}
 	}
 
-
-
+	/**
+	 * Sends to different methods depending on command.
+	 * @param command String representation of command received from Clients
+	 * @param arguments String representation of any arguments sent with command by Client
+	 * @throws IOException
+	 */
 	private void clientsCommand(String command, String arguments) throws IOException {
 
 		// Switch statement for clients different commands
 		switch(command) {
-
 
 		case "GET":                
 			getCommand(arguments);
@@ -177,15 +196,19 @@ public class FTPServerWorker implements Runnable {
 
 	}
 
-
-
+	/**
+	 * Command get send a file from the server and copies
+	 * it to the client.
+	 * @param argument String representation of the file name sent by Client
+	 * @throws IOException
+	 */
 	private void getCommand(String argument) throws IOException {
+		
+		// Setup File object to prepare to send to Client
+		File fileClientWants = new File(currentDirectory + sysFileSeparator + argument);
 
-
-		String fileNameClientWants = argument;
-
-		File fileClientWants = new File(currentDirectory + sysFileSeparator + fileNameClientWants);
-
+		// If file name sent by Client does not exist inform 
+		// Client and return from method.
 		if (!fileClientWants.exists()) {
 			messageClient("NOT FOUND");
 			return;
@@ -193,8 +216,15 @@ public class FTPServerWorker implements Runnable {
 			messageClient("EXISTS");
 		}
 
+		// Send length of file to Client
 		messageClient(Long.toString(fileClientWants.length()));
 
+		// Try to create a byte buffer the size of the file length.
+		// Read from file into file input stream then proceed to read
+		// from (buffered) file input stream into byte buffer. Write from
+		// the byte buffer to the output stream to the Client.
+		// Inform user upon file transfer completion.
+		// Catch possible errors.
 		try {
 
 			File fileReference = new File(fileClientWants.getPath());
@@ -220,30 +250,41 @@ public class FTPServerWorker implements Runnable {
 				try {
 					fileInputStream.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.err.println("IOException:  " + e + "\n" + e.getMessage());
 				}
 			}
 			if (bufferedFileInputStream != null) {
 				try {
 					bufferedFileInputStream.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.err.println("IOException:  " + e + "\n" + e.getMessage());
 				}
 			}
 		}
-
 	}
-
+	
+	/**
+	 * Command put sends a file from the Client and copies
+	 * it to the Server.
+	 * @param argument String representation of file name
+	 * @throws IOException
+	 */
 	private void putCommand(String argument) throws IOException {
 
-		File fileToCreate = new File(argument);
-
+		// Create new file at specified path name
+		File fileToCreate = new File(argument);			
+		
+		// Receive file length from Client
 		String fileLengthFromClient = receiveClientResponse();
 
+		// Parse String of file length to int
 		Integer filesLength = Integer.parseInt(fileLengthFromClient);
 
+		// Try to create a file output stream and byte buffer the size of the file length.
+		// Read input from Client into byte buffer then proceed to use 
+		// (buffered) file output stream to write from byte buffer to the created file.
+		// Inform Client upon file transfer completion.
+		// Catch possible errors.
 		try {
 
 			fileOutputStream = new FileOutputStream(fileToCreate);
@@ -256,21 +297,45 @@ public class FTPServerWorker implements Runnable {
 
 			bufferedFileOutputStream.write(buffer, 0 , filesLength);
 			bufferedFileOutputStream.flush();
-
+			
+			fileToCreate.setReadable(true, false);
+			fileToCreate.setWritable(true, false);
 		} 
 		catch (IOException e) {
 			System.err.println("IOException: " + e);
 		}    
-
+		finally {
+			if (fileOutputStream != null) {
+				try {
+					fileOutputStream.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			if (bufferedFileOutputStream != null) {
+				try {
+					bufferedFileOutputStream.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
 
 
 	}
 
 	/**
 	 * Delete file in directory with name given by client
-	 * @param argument
+	 * @param argument String representation of file name sent by Client
 	 */
 	private void deleteCommand(String argument) {
+		
+		// Try to create file object using file name sent by Client
+		// If file exists delete file and inform Client.
+		// If file does not exist inform Client.
+		// Catch any possible errors.
 		try {         
 			File fileToDelete = new File(currentDirectory, argument);            
 
@@ -292,7 +357,6 @@ public class FTPServerWorker implements Runnable {
 
 	}
 
-
 	/**
 	 * Retrieves list of files from current directory and sends to Client
 	 */
@@ -311,7 +375,6 @@ public class FTPServerWorker implements Runnable {
 		}
 
 	}
-
 
 	/**
 	 * Takes Client arguments and determines which directory to change to then
@@ -352,10 +415,8 @@ public class FTPServerWorker implements Runnable {
 		}
 
 		this.currentDirectory = directory;
-		//System.setProperty("user.dir", directory);
 		messageClient("");
 	}
-
 
 	/**
 	 * Makes a directory in current directory as named by Client
@@ -383,7 +444,6 @@ public class FTPServerWorker implements Runnable {
 		messageClient("");
 	}
 
-
 	/**
 	 * Sends the absolute path of the remote current working directory
 	 * to the Client
@@ -393,14 +453,12 @@ public class FTPServerWorker implements Runnable {
 		messageClient("Remote working directory: " + currentDirectory);
 	}
 
-
 	/**
 	 * Terminates the while loop to close the thread socket connection
 	 */
 	private void quitCommand() {
 		quitCommand = true;        	
 	}
-
 
 	/**
 	 * Determines the remote current directory from the System
@@ -411,7 +469,6 @@ public class FTPServerWorker implements Runnable {
 		return this.currentDirectory;
 	}
 
-
 	/**
 	 * Outputs desired message to client via output stream
 	 * @param message The message for the client
@@ -420,10 +477,9 @@ public class FTPServerWorker implements Runnable {
 		outputToClient.println(message);
 		outputToClient.flush();
 	}
-
-
+	
 	/**
-	 * Receives servers response and returns its string representation
+	 * Receives clients response and returns its string representation
 	 * @return String representation of server's response
 	 */
 	private String receiveClientResponse() {
@@ -436,6 +492,4 @@ public class FTPServerWorker implements Runnable {
 		}
 		return clientResponse;
 	}
-
-
 }
